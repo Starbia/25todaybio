@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import math
 import io
 import json
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="마음 예보", page_icon="🌤️", layout="centered")
 
@@ -148,6 +149,51 @@ avg_label = (
     "주의 🌧️" if avg > -0.6 else
     "회복권장 ⛈️"
 )
+
+# --- Copy & Paste: 오늘의 조언 전체 문자열 구성 ---
+advice_lines = [
+    f"[마음 예보] {target.strftime('%Y-%m-%d')} · 전체 컨디션: {avg_label}",
+    "— 오늘의 조언 —",
+]
+for r in rows:
+    advice_lines.append(
+        f"{EMOJI[r['항목']]} {r['항목']} (" 
+        f"{r['상태']}, 값 {r['값']:+.3f}) : {r['오늘의 실천']}"
+    )
+advice_text = "
+".join(advice_lines)
+
+# 미리보기 + 복사 버튼
+with st.container():
+    cols = st.columns([1,1])
+    with cols[0]:
+        st.markdown("### 📋 오늘의 조언 복사")
+        st.caption("버튼 클릭 시 아래 내용이 클립보드에 복사됩니다.")
+    with cols[1]:
+        components.html(
+            f"""
+            <div style='display:flex;justify-content:flex-end;align-items:center;height:100%'>
+              <button id='copyBtn' style='padding:8px 14px;border-radius:10px;border:1px solid #ddd;cursor:pointer;'>📄 Copy</button>
+            </div>
+            <script>
+              const txt = {json.dumps(advice_text)};
+              const btn = document.getElementById('copyBtn');
+              btn.onclick = async () => {{
+                try {{
+                  await navigator.clipboard.writeText(txt);
+                  btn.textContent = '✅ Copied!';
+                }} catch (e) {{
+                  btn.textContent = '❌ Copy failed';
+                }}
+                setTimeout(() => btn.textContent = '📄 Copy', 1500);
+              }};
+            </script>
+            """,
+            height=46,
+        )
+
+with st.expander("복사될 내용 미리보기"):
+    st.text_area("copy_preview", advice_text, height=140, label_visibility="collapsed")
 
 st.subheader(f"{target.strftime('%Y-%m-%d')} · 전체 컨디션 {EMOJI['전체']} : {avg_label}")
 for r in rows:
